@@ -118,4 +118,9 @@ behind it.
 1.  [`dplyr`](https://cran.r-project.org/package=dplyr): Hadley wickham
 2.  [`slider`](https://cran.r-project.org/package=slider): Davis Vaughan
 
+## Installation
+
+-   dev: `remotes::install_github("talegari/tidier")`
+-   cran: `install.packages("tidier")`
+
 ------------------------------------------------------------------------
