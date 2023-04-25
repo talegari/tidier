@@ -107,7 +107,7 @@ and
     [`dbplyr::window_order`/`dbplyr::window_frame`](https://dbplyr.tidyverse.org/reference/window_order.html?q=window_fr#ref-usage).
 
 2.  [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html)
-    python package implements `mutate` style window computatio API for
+    python package implements `mutate` style window computation API for
     pyspark.
 
 ## Acknowledgements
@@ -115,9 +115,7 @@ and
 `tidier` package is deeply indebted to two amazing packages and people
 behind it.
 
-1.  [`dplyr`](https://cran.r-project.org/web/packages/dplyr/index.html):
-    Hadley wickham
-2.  [`slider`](https://cran.r-project.org/web/packages/slider/index.html):
-    Davis Vaughan
+1.  [`dplyr`](https://cran.r-project.org/package=dplyr): Hadley wickham
+2.  [`slider`](https://cran.r-project.org/package=slider): Davis Vaughan
 
 ------------------------------------------------------------------------

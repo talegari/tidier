@@ -73,13 +73,13 @@ This implementation is inspired by Apache Spark's [`windowSpec`](https://spark.a
 
 1. [`dbplyr`](https://dbplyr.tidyverse.org/) implements this via [`dbplyr::win_over`](https://dbplyr.tidyverse.org/reference/win_over.html?q=win_over#null) enabling [`sparklyr`](https://spark.rstudio.com/) users to write window computations. Also see, [`dbplyr::window_order`/`dbplyr::window_frame`](https://dbplyr.tidyverse.org/reference/window_order.html?q=window_fr#ref-usage).
 
-2. [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html) python package implements `mutate` style window computatio API for pyspark.
+2. [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html) python package implements `mutate` style window computation API for pyspark.
 
 ## Acknowledgements
 
 `tidier` package is deeply indebted to two amazing packages and people behind it.
 
-1. [`dplyr`](https://cran.r-project.org/web/packages/dplyr/index.html): Hadley wickham
-2. [`slider`](https://cran.r-project.org/web/packages/slider/index.html): Davis Vaughan
+1. [`dplyr`](https://cran.r-project.org/package=dplyr): Hadley wickham
+2. [`slider`](https://cran.r-project.org/package=slider): Davis Vaughan
 
 ----
