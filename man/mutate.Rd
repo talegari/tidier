@@ -58,8 +58,7 @@ package.
 }
 }
 \examples{
-\dontrun{
-# library("magrittr")
+library("magrittr")
 # example 1
 # Using iris dataset,
 # compute cumulative mean of column `Sepal.Length`
@@ -106,7 +105,6 @@ airquality \%>\%
                     ),
          .index = date_col
          )
-}
 }
 \seealso{
 mutate_

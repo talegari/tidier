@@ -20,7 +20,7 @@ devtools::load_all()
 <!-- badges: start -->
 <!-- badges: end -->
 
-`tidier` package provides spark style window aggregation for R dataframes via 'mutate' in 'dplyr' flavour.
+`tidier` package provides '[Apache Spark](https://spark.apache.org/)' style window aggregation for R dataframes via '[mutate](https://dplyr.tidyverse.org/reference/mutate.html)' in '[dplyr](https://dplyr.tidyverse.org/index.html)' flavour.
 
 ## Example
 

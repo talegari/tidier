@@ -53,8 +53,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # library("magrittr")
+#' library("magrittr")
 #' # example 1
 #' # Using iris dataset,
 #' # compute cumulative mean of column `Sepal.Length`
@@ -92,7 +91,6 @@
 #'                 ) %>%
 #'   # create gaps by removing some days
 #'   dplyr::slice_sample(prop = 0.8) %>%
-#'   tibble::as_tibble() %>%
 #'   # compute mean temperature over last seven days in the same month
 #'   mutate_(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
 #'           .order_by = "Day",
@@ -100,9 +98,8 @@
 #'           .frame = c(lubridate::days(7), # 7 days before current row
 #'                      lubridate::days(-1) # do not include current row
 #'                      ),
-#'           .index = date_col
+#'           .index = "date_col"
 #'           )
-#' }
 #' @export
 
 mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
@@ -319,8 +316,7 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # library("magrittr")
+#' library("magrittr")
 #' # example 1
 #' # Using iris dataset,
 #' # compute cumulative mean of column `Sepal.Length`
@@ -367,7 +363,6 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
 #'                     ),
 #'          .index = date_col
 #'          )
-#' }
 #' @export
 mutate = function(x, ..., .by, .order_by, .frame, .index){
 
