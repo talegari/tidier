@@ -1,0 +1,17 @@
+citHeader("To cite tidier in publications use:")
+
+citEntry(
+  entry    = "Manual",
+  title    = "tidier: Enhanced 'mutate'",
+  author   = "Srikanth Komala Sheshachala",
+  year     = "2023",
+  url      = "https://CRAN.R-project.org/package=tidier",
+  textVersion = paste(
+    "Srikanth Komala Sheshachala",
+    "(2023).",
+    "tidier: Enhanced 'mutate'.",
+    "Provides ‘Apache Spark’ style window aggregation for R dataframes via ‘mutate’ in ‘dplyr’ flavour.",
+    "R package version 4.2.0.",
+    "https://CRAN.R-project.org/package=tidier"
+  )
+)

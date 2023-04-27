@@ -11,7 +11,8 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
-library("magrittr")
+
+library("purrr") # prevent `purrr` load message by `furrr`
 devtools::load_all()
 ```
 
@@ -24,45 +25,24 @@ devtools::load_all()
 
 ## Example
 
-```{r}
-set.seed(101)
-air_df = airquality %>%
-  # create date column
-  dplyr::mutate(date_col = as.Date(paste("1973",
-                                         stringr::str_pad(Month,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         stringr::str_pad(Day,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         sep = "-"
-                                         )
-                                  )
-                ) %>%
-  # create gaps by removing some days
-  dplyr::slice_sample(prop = 0.8) %>% 
-  tibble::as_tibble()
-
-air_df
-```
-
 **Create a new column with average temp over last seven days in the same month**.
 
 ```{r}
-air_df %>% 
+set.seed(101)
+airquality |>
+  # create date column
+  dplyr::mutate(date_col = lubridate::make_date(1973, Month, Day)) |>
+  # create gaps by removing some days
+  dplyr::slice_sample(prop = 0.8) |> 
   # compute mean temperature over last seven days in the same month
-  mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-         .order_by = Day,
-         .by = Month,
-         .frame = c(lubridate::days(7), # 7 days before current row
-                    lubridate::days(-1) # do not include current row
-                    ),
-         .index = date_col
-         )
+  tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
+                 .order_by = Day,
+                 .by = Month,
+                 .frame = c(lubridate::days(7), # 7 days before current row
+                            lubridate::days(-1) # do not include current row
+                            ),
+                 .index = date_col
+                 )
 ```
 
 ## Motivation
@@ -75,16 +55,24 @@ This implementation is inspired by Apache Spark's [`windowSpec`](https://spark.a
 
 2. [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html) python package implements `mutate` style window computation API for pyspark.
 
-## Acknowledgements
-
-`tidier` package is deeply indebted to two amazing packages and people behind it.
-
-1. [`dplyr`](https://cran.r-project.org/package=dplyr): Hadley wickham
-2. [`slider`](https://cran.r-project.org/package=slider): Davis Vaughan
-
 ## Installation
 
 - dev: `remotes::install_github("talegari/tidier")`
 - cran: `install.packages("tidier")`
 
-----
+## Acknowledgements
+
+`tidier` package is deeply indebted to two amazing packages and people behind it.
+
+1. [`dplyr`](https://cran.r-project.org/package=dplyr):
+```
+Wickham H, François R, Henry L, Müller K, Vaughan D (2023). _dplyr: A
+Grammar of Data Manipulation_. R package version 1.1.0,
+<https://CRAN.R-project.org/package=dplyr>.
+```
+
+2. [`slider`](https://cran.r-project.org/package=slider):
+```
+Vaughan D (2021). _slider: Sliding Window Functions_. R package
+version 0.2.2, <https://CRAN.R-project.org/package=slider>.
+```
