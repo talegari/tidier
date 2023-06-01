@@ -4,7 +4,16 @@
 \alias{mutate_}
 \title{Drop-in replacement for \code{\link[dplyr]{mutate}}}
 \usage{
-mutate_(x, ..., .by, .order_by, .frame, .index, .desc = FALSE)
+mutate_(
+  x,
+  ...,
+  .by,
+  .order_by,
+  .frame,
+  .index,
+  .desc = FALSE,
+  .complete = FALSE
+)
 }
 \arguments{
 \item{x}{(data.frame)}
@@ -26,6 +35,11 @@ objects. See examples.}
 
 \item{.desc}{(logical_vector, default: FALSE) bool or logical vector of same
 length as \code{.order_by}.}
+
+\item{.complete}{(flag, default: FALSE) This will be passed to
+\code{slider::slide} / \code{slider::slide_vec}. Should the function be evaluated on
+complete windows only? If FALSE, the default, then partial computations
+will be allowed.}
 }
 \value{
 data.frame
@@ -81,34 +95,22 @@ iris \%>\%
 # Using a sample airquality dataset,
 # compute mean temp over last seven days in the same month for every row
 
+set.seed(101)
 airquality \%>\%
   # create date column
-  dplyr::mutate(date_col = as.Date(paste("1973",
-                                         stringr::str_pad(Month,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         stringr::str_pad(Day,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         sep = "-"
-                                         )
-                                  )
-                ) \%>\%
+  dplyr::mutate(date_col = lubridate::make_date(1973, Month, Day)) \%>\%
   # create gaps by removing some days
   dplyr::slice_sample(prop = 0.8) \%>\%
+  dplyr::arrange(date_col) \%>\%
   # compute mean temperature over last seven days in the same month
-  mutate_(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-          .order_by = "Day",
-          .by = "Month",
-          .frame = c(lubridate::days(7), # 7 days before current row
-                     lubridate::days(-1) # do not include current row
-                     ),
-          .index = "date_col"
-          )
+  tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
+                 .order_by = "Day",
+                 .by = "Month",
+                 .frame = c(lubridate::days(7), # 7 days before current row
+                            lubridate::days(-1) # do not include current row
+                            ),
+                 .index = "date_col"
+                 )
 }
 \seealso{
 mutate

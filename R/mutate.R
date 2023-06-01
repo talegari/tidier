@@ -47,6 +47,10 @@
 #' @param .index (string, optional: Yes) name of index column
 #' @param .desc (logical_vector, default: FALSE) bool or logical vector of same
 #'   length as `.order_by`.
+#' @param .complete (flag, default: FALSE) This will be passed to
+#'   `slider::slide` / `slider::slide_vec`. Should the function be evaluated on
+#'   complete windows only? If FALSE, the default, then partial computations
+#'   will be allowed.
 #' @return data.frame
 #' @importFrom magrittr %>%
 #' @importFrom utils tail
@@ -72,37 +76,27 @@
 #' # Using a sample airquality dataset,
 #' # compute mean temp over last seven days in the same month for every row
 #'
+#' set.seed(101)
 #' airquality %>%
 #'   # create date column
-#'   dplyr::mutate(date_col = as.Date(paste("1973",
-#'                                          stringr::str_pad(Month,
-#'                                                           width = 2,
-#'                                                           side = "left",
-#'                                                           pad = "0"
-#'                                                           ),
-#'                                          stringr::str_pad(Day,
-#'                                                           width = 2,
-#'                                                           side = "left",
-#'                                                           pad = "0"
-#'                                                           ),
-#'                                          sep = "-"
-#'                                          )
-#'                                   )
-#'                 ) %>%
+#'   dplyr::mutate(date_col = lubridate::make_date(1973, Month, Day)) %>%
 #'   # create gaps by removing some days
 #'   dplyr::slice_sample(prop = 0.8) %>%
+#'   dplyr::arrange(date_col) %>%
 #'   # compute mean temperature over last seven days in the same month
-#'   mutate_(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-#'           .order_by = "Day",
-#'           .by = "Month",
-#'           .frame = c(lubridate::days(7), # 7 days before current row
-#'                      lubridate::days(-1) # do not include current row
-#'                      ),
-#'           .index = "date_col"
-#'           )
+#'   tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
+#'                  .order_by = "Day",
+#'                  .by = "Month",
+#'                  .frame = c(lubridate::days(7), # 7 days before current row
+#'                             lubridate::days(-1) # do not include current row
+#'                             ),
+#'                  .index = "date_col"
+#'                  )
 #' @export
 
-mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
+mutate_ = function(x, ..., .by, .order_by, .frame, .index,
+                   .desc = FALSE, .complete = FALSE
+                   ){
 
   # capture expressions --------------------------------------------------------
   ddd = rlang::enquos(...)
@@ -182,9 +176,11 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
                             x_copy,
                             .f = ~ as.list(dplyr::summarise(.x, !!!ddd)),
                             .before = .frame[1],
-                            .after  = .frame[2]
+                            .after  = .frame[2],
+                            .complete = .complete
                             )
                         ) %>%
+          remove_common_nested_columns(slide_output__) %>%
           tidyr::unnest_wider(slide_output__)
       } else {
         x_copy = x_copy %>%
@@ -194,9 +190,11 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
                             .f = ~ as.list(dplyr::summarise(.x, !!!ddd)),
                             .i = x_copy[[.index]],
                             .before = .frame[1],
-                            .after  = .frame[2]
+                            .after  = .frame[2],
+                            .complete = .complete
                             )
                         ) %>%
+          remove_common_nested_columns(slide_output__) %>%
           tidyr::unnest_wider(slide_output__)
       }
     }
@@ -221,7 +219,8 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
                                 chunk,
                                 .f = ~ as.list(dplyr::summarise(.x, !!!ddd)),
                                 .before = .frame[1],
-                                .after  = .frame[2]
+                                .after  = .frame[2],
+                                .complete = .complete
                                 )
                           )
         } else {
@@ -232,7 +231,8 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
                                 .f = ~ as.list(dplyr::summarise(.x, !!!ddd)),
                                 .i  = chunk[[.index]],
                                 .before = .frame[1],
-                                .after  = .frame[2]
+                                .after  = .frame[2],
+                                .complete = .complete
                                 )
                           )
         }
@@ -252,6 +252,7 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
         dplyr::ungroup() %>%
         dplyr::mutate(data__ = furrr::future_map(data__, fun_per_chunk)) %>%
         tidyr::unnest(data__) %>%
+        remove_common_nested_columns(slide_output__) %>%
         tidyr::unnest_wider(slide_output__)
 
     }
@@ -285,6 +286,7 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
 #'   API](https://www.databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html).
 #'
 #'
+#'
 #'   Implementation Details:
 #'
 #'   - Iteration per row over the window is implemented using the versatile
@@ -309,6 +311,10 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
 #'   [interval](https://lubridate.tidyverse.org/reference/interval.html)
 #'   objects. See examples.
 #' @param .index (expression, optional: Yes) index column
+#' @param .complete (flag, default: FALSE) This will be passed to
+#'   `slider::slide` / `slider::slide_vec`. Should the function be evaluated on
+#'   complete windows only? If FALSE, the default, then partial computations
+#'   will be allowed.
 #' @return data.frame
 #' @importFrom magrittr %>%
 #' @importFrom utils tail
@@ -335,36 +341,24 @@ mutate_ = function(x, ..., .by, .order_by, .frame, .index, .desc = FALSE){
 #' # Using a sample airquality dataset,
 #' # compute mean temp over last seven days in the same month for every row
 #'
+#' set.seed(101)
 #' airquality %>%
 #'   # create date column
-#'   dplyr::mutate(date_col = as.Date(paste("1973",
-#'                                          stringr::str_pad(Month,
-#'                                                           width = 2,
-#'                                                           side = "left",
-#'                                                           pad = "0"
-#'                                                           ),
-#'                                          stringr::str_pad(Day,
-#'                                                           width = 2,
-#'                                                           side = "left",
-#'                                                           pad = "0"
-#'                                                           ),
-#'                                          sep = "-"
-#'                                          )
-#'                                   )
-#'                 ) %>%
+#'   dplyr::mutate(date_col = lubridate::make_date(1973, Month, Day)) %>%
 #'   # create gaps by removing some days
 #'   dplyr::slice_sample(prop = 0.8) %>%
+#'   dplyr::arrange(date_col) %>%
 #'   # compute mean temperature over last seven days in the same month
-#'   mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-#'          .order_by = Day,
-#'          .by = Month,
-#'          .frame = c(lubridate::days(7), # 7 days before current row
-#'                     lubridate::days(-1) # do not include current row
-#'                     ),
-#'          .index = date_col
-#'          )
+#'   tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
+#'                  .order_by = Day,
+#'                  .by = Month,
+#'                  .frame = c(lubridate::days(7), # 7 days before current row
+#'                             lubridate::days(-1) # do not include current row
+#'                             ),
+#'                  .index = date_col
+#'                  )
 #' @export
-mutate = function(x, ..., .by, .order_by, .frame, .index){
+mutate = function(x, ..., .by, .order_by, .frame, .index, .complete = FALSE){
 
   # capture expressions --------------------------------------------------------
   ddd = rlang::enquos(...)
@@ -462,9 +456,11 @@ mutate = function(x, ..., .by, .order_by, .frame, .index){
                             x_copy,
                             .f = ~ as.list(dplyr::summarise(.x, !!!ddd)),
                             .before = .frame[1],
-                            .after  = .frame[2]
+                            .after  = .frame[2],
+                            .complete = .complete
                             )
                         ) %>%
+          remove_common_nested_columns(slide_output__) %>%
           tidyr::unnest_wider(slide_output__)
       } else {
         x_copy = x_copy %>%
@@ -474,9 +470,11 @@ mutate = function(x, ..., .by, .order_by, .frame, .index){
                             .f = ~ as.list(dplyr::summarise(.x, !!!ddd)),
                             .i = x_copy[[.index]],
                             .before = .frame[1],
-                            .after  = .frame[2]
+                            .after  = .frame[2],
+                            .complete = .complete
                             )
                         ) %>%
+          remove_common_nested_columns(slide_output__) %>%
           tidyr::unnest_wider(slide_output__)
       }
     }
@@ -499,7 +497,8 @@ mutate = function(x, ..., .by, .order_by, .frame, .index){
                                 chunk,
                                 .f = ~ as.list(dplyr::summarise(.x, !!!ddd)),
                                 .before = .frame[1],
-                                .after  = .frame[2]
+                                .after  = .frame[2],
+                                .complete = .complete
                                 )
                           )
         } else {
@@ -510,7 +509,8 @@ mutate = function(x, ..., .by, .order_by, .frame, .index){
                                 .f = ~ as.list(dplyr::summarise(.x, !!!ddd)),
                                 .i  = chunk[[.index]],
                                 .before = .frame[1],
-                                .after  = .frame[2]
+                                .after  = .frame[2],
+                                .complete = .complete
                                 )
                           )
         }
@@ -529,6 +529,7 @@ mutate = function(x, ..., .by, .order_by, .frame, .index){
         dplyr::ungroup() %>%
         dplyr::mutate(data__ = furrr::future_map(data__, fun_per_chunk)) %>%
         tidyr::unnest(data__) %>%
+        remove_common_nested_columns(slide_output__) %>%
         tidyr::unnest_wider(slide_output__)
 
     }
@@ -542,3 +543,29 @@ mutate = function(x, ..., .by, .order_by, .frame, .index){
   return(x_copy)
 }
 
+# remove_common_nested_columns ----
+#' @name remove_common_nested_columns
+#' @title Remove non-list columns when same are present in a list column
+#' @description Remove non-list columns when same are present in a list column
+#' @param df input dataframe
+#' @param list_column Name or expr of the column which is a list of named lists
+#' @return dataframe
+remove_common_nested_columns = function(df, list_column){
+
+  # we assume that all dfs in list_column have identical column names
+  new_names = df %>%
+    dplyr::slice(1) %>%
+    dplyr::pull({{ list_column }}) %>%
+    `[[`(1) %>%
+    names()
+
+  common_names = intersect(new_names, colnames(df))
+
+  if (length(common_names) >= 1){
+    for (a_common_name in common_names){
+      df[[a_common_name]] = NULL
+    }
+  }
+
+  return(df)
+}

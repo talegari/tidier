@@ -4,6 +4,9 @@
 # tidier
 
 <!-- badges: start -->
+
+[![CRAN
+status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier)
 <!-- badges: end -->
 
 `tidier` package provides ‘[Apache Spark](https://spark.apache.org/)’
@@ -26,11 +29,11 @@ airquality |>
   # compute mean temperature over last seven days in the same month
   tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
                  .order_by = Day,
-                 .by = Month,
-                 .frame = c(lubridate::days(7), # 7 days before current row
-                            lubridate::days(-1) # do not include current row
-                            ),
-                 .index = date_col
+                 .by       = Month,
+                 .frame    = c(lubridate::days(7), # 7 days before current row
+                               lubridate::days(-1) # do not include current row
+                               ),
+                 .index    = date_col
                  )
 #> # A tibble: 122 × 8
 #>    Month Ozone Solar.R  Wind  Temp   Day date_col   avg_temp_over_last_week
@@ -45,8 +48,19 @@ airquality |>
 #>  8     6    NA     186   9.2    84     4 1973-06-04                    72.5
 #>  9     8    78      NA   6.9    86     4 1973-08-04                    81.3
 #> 10     8   168     238   3.4    81    25 1973-08-25                    76.5
-#> # … with 112 more rows
+#> # ℹ 112 more rows
 ```
+
+## Features
+
+-   `mutate` supports
+    -   `.by` (group by),
+    -   `.order_by` (order by),
+    -   `.frame` (endpoints of window frame),
+    -   `.index` (identify index column like date column),
+    -   `.complete` (whether to compute over incomplete window).
+-   `mutate` automatically uses a future backend (via
+    [`furrr`](https://furrr.futureverse.org/)).
 
 ## Motivation
 
