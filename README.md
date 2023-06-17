@@ -9,6 +9,7 @@
 status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier)
 [![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml)
 [![](https://img.shields.io/badge/devel%20version-0.1.0-blue.svg)](https://github.com/talegari/tidier)
+
 <!-- badges: end -->
 
 `tidier` package provides ‘[Apache Spark](https://spark.apache.org/)’
