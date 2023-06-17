@@ -20,8 +20,8 @@ devtools::load_all()
 
 <!-- badges: start -->
 
-[![CRAN status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier)
-[![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml)
+[![CRAN status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier) [![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml) `r badger::badge_devel(color = "blue")`
+
 <!-- badges: end -->
 
 `tidier` package provides '[Apache Spark](https://spark.apache.org/)' style window aggregation for R dataframes via '[mutate](https://dplyr.tidyverse.org/reference/mutate.html)' in '[dplyr](https://dplyr.tidyverse.org/index.html)' flavour.
@@ -50,14 +50,13 @@ airquality |>
 
 ## Features
 
-- `mutate` supports
-  - `.by` (group by),
-  - `.order_by` (order by),
-  - `.frame` (endpoints of window frame),
-  - `.index` (identify index column like date column),
-  - `.complete` (whether to compute over incomplete window).
-  
-- `mutate` automatically uses a future backend (via [`furrr`](https://furrr.futureverse.org/)).
+-   `mutate` supports
+    -   `.by` (group by),
+    -   `.order_by` (order by),
+    -   `.frame` (endpoints of window frame),
+    -   `.index` (identify index column like date column),
+    -   `.complete` (whether to compute over incomplete window).
+-   `mutate` automatically uses a future backend (via [`furrr`](https://furrr.futureverse.org/)).
 
 ## Motivation
 
@@ -80,17 +79,19 @@ This implementation is inspired by Apache Spark's [`windowSpec`](https://spark.a
 
 1.  [`dplyr`](https://cran.r-project.org/package=dplyr):
 
-```{=html}
 <!-- -->
+
+```         
+Wickham H, François R, Henry L, Müller K, Vaughan D (2023). _dplyr: A
+Grammar of Data Manipulation_. R package version 1.1.0,
+<https://CRAN.R-project.org/package=dplyr>.
 ```
-    Wickham H, François R, Henry L, Müller K, Vaughan D (2023). _dplyr: A
-    Grammar of Data Manipulation_. R package version 1.1.0,
-    <https://CRAN.R-project.org/package=dplyr>.
 
 2.  [`slider`](https://cran.r-project.org/package=slider):
 
-```{=html}
 <!-- -->
+
+```         
+Vaughan D (2021). _slider: Sliding Window Functions_. R package
+version 0.2.2, <https://CRAN.R-project.org/package=slider>.
 ```
-    Vaughan D (2021). _slider: Sliding Window Functions_. R package
-    version 0.2.2, <https://CRAN.R-project.org/package=slider>.
