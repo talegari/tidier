@@ -21,6 +21,7 @@ devtools::load_all()
 <!-- badges: start -->
 
 [![CRAN status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier)
+[![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 `tidier` package provides '[Apache Spark](https://spark.apache.org/)' style window aggregation for R dataframes via '[mutate](https://dplyr.tidyverse.org/reference/mutate.html)' in '[dplyr](https://dplyr.tidyverse.org/index.html)' flavour.

@@ -7,6 +7,7 @@
 
 [![CRAN
 status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier)
+[![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 `tidier` package provides ‘[Apache Spark](https://spark.apache.org/)’
@@ -53,14 +54,14 @@ airquality |>
 
 ## Features
 
--   `mutate` supports
-    -   `.by` (group by),
-    -   `.order_by` (order by),
-    -   `.frame` (endpoints of window frame),
-    -   `.index` (identify index column like date column),
-    -   `.complete` (whether to compute over incomplete window).
--   `mutate` automatically uses a future backend (via
-    [`furrr`](https://furrr.futureverse.org/)).
+- `mutate` supports
+  - `.by` (group by),
+  - `.order_by` (order by),
+  - `.frame` (endpoints of window frame),
+  - `.index` (identify index column like date column),
+  - `.complete` (whether to compute over incomplete window).
+- `mutate` automatically uses a future backend (via
+  [`furrr`](https://furrr.futureverse.org/)).
 
 ## Motivation
 
@@ -85,8 +86,8 @@ and
 
 ## Installation
 
--   dev: `remotes::install_github("talegari/tidier")`
--   cran: `install.packages("tidier")`
+- dev: `remotes::install_github("talegari/tidier")`
+- cran: `install.packages("tidier")`
 
 ## Acknowledgements
 
