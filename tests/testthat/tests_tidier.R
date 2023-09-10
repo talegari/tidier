@@ -267,3 +267,57 @@ test_that("order_by, with by, with frame, with index, with same column", {
          )
   testthat::expect(inherits(res, "data.frame"), "not a df")
 })
+
+test_that("compare mutate df vs sb", {
+
+  res_df =
+    airquality %>%
+    # create date column as character
+    dplyr::mutate(date_col =
+                    as.character(lubridate::make_date(1973, Month, Day))
+                  ) %>%
+    tibble::as_tibble() %>%
+    mutate(avg_temp = mean(Temp),
+           .by = Month,
+           .order_by = c(date_col),
+           .frame = c(3, 3)
+           ) %>%
+    dplyr::select(Ozone, Solar.R, Wind, Temp, Month, Day, date_col, avg_temp)
+
+  res_db =
+    airquality %>%
+    # create date column as character
+    dplyr::mutate(date_col =
+                    as.character(lubridate::make_date(1973, Month, Day))
+                  ) %>%
+    tibble::as_tibble() %>%
+    # as `tbl_lazy`
+    dbplyr::memdb_frame() %>%
+    mutate(avg_temp = mean(Temp),
+           .by = Month,
+           .order_by = c(date_col),
+           .frame = c(3, 3)
+           ) %>%
+    dplyr::collect() %>%
+    dplyr::select(Ozone, Solar.R, Wind, Temp, Month, Day, date_col, avg_temp)
+
+  res_db_ =
+    airquality %>%
+    # create date column as character
+    dplyr::mutate(date_col =
+                    as.character(lubridate::make_date(1973, Month, Day))
+                  ) %>%
+    tibble::as_tibble() %>%
+    # as `tbl_lazy`
+    dbplyr::memdb_frame() %>%
+    mutate_(avg_temp = mean(Temp),
+           .by = "Month",
+           .order_by = "date_col",
+           .frame = c(3, 3)
+           ) %>%
+    dplyr::collect() %>%
+    dplyr::select(Ozone, Solar.R, Wind, Temp, Month, Day, date_col, avg_temp)
+
+  testthat::expect_true(all.equal(res_df, res_db))
+  testthat::expect_true(all.equal(res_df, res_db_))
+})

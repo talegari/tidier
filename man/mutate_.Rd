@@ -16,54 +16,59 @@ mutate_(
 )
 }
 \arguments{
-\item{x}{(data.frame)}
+\item{x}{(\code{data.frame} or \code{tbl_lazy})}
 
 \item{...}{expressions to be passed to \code{\link[dplyr]{mutate}}}
 
-\item{.by}{(character vector, optional: Yes) columns to group by}
+\item{.by}{(character vector, optional: Yes) Columns to group by}
 
-\item{.order_by}{(character vector, optional: Yes) columns to order by}
+\item{.order_by}{(string, optional: Yes) Columns to order by}
 
 \item{.frame}{(vector, optional: Yes) Vector of length 2 indicating the
 number of rows to consider before and after the current row. When argument
 \code{.index} is provided (typically a column of type date or datetime), before
 and after can be
 \href{https://lubridate.tidyverse.org/reference/interval.html}{interval}
-objects. See examples.}
+objects. See examples. When input is \code{tbl_lazy}, only number of rows as
+vector of length 2 is supported.}
 
-\item{.index}{(string, optional: Yes) name of index column}
+\item{.index}{(string, optional: Yes, default: NULL) index column. This is
+supported when input is a dataframe only.}
 
-\item{.desc}{(logical_vector, default: FALSE) bool or logical vector of same
-length as \code{.order_by}.}
+\item{.desc}{(flag, default: FALSE) Whether to order in descending order}
 
 \item{.complete}{(flag, default: FALSE) This will be passed to
 \code{slider::slide} / \code{slider::slide_vec}. Should the function be evaluated on
-complete windows only? If FALSE, the default, then partial computations
-will be allowed.}
+complete windows only? If FALSE or NULL, the default, then partial
+computations will be allowed. This is supported when input is a dataframe
+only.}
 }
 \value{
-data.frame
+\code{data.frame} or \code{tbl_lazy}
 }
 \description{
 Provides supercharged version of \code{\link[dplyr]{mutate}}
 with \code{group_by}, \code{order_by} and aggregation over arbitrary window frame
-around a row. This function allows some arguments to be passed as strings
-instead of expressions.
+around a row for dataframes and lazy (remote) \code{tbl}s of class \code{tbl_lazy}.
 }
 \details{
 A window function returns a value for every input row of a dataframe
-based on a group of rows (frame) in the neighborhood of the input row. This
-function implements computation over groups (\code{partition_by} in SQL) in a
-predefined order (\code{order_by} in SQL) across a neighborhood of rows (frame)
-defined by a (up, down) where
+or \code{lazy_tbl} based on a group of rows (frame) in the neighborhood of the
+input row. This function implements computation over groups (\code{partition_by}
+in SQL) in a predefined order (\code{order_by} in SQL) across a neighborhood of
+rows (frame) defined by a (up, down) where
 \itemize{
 \item up/down are number of rows before and after the corresponding row
-\item up/down are interval objects (ex: \code{c(days(2), days(1))})
+\item up/down are interval objects (ex: \code{c(days(2), days(1))}).
+Interval objects are currently supported for dataframe only. (not
+\code{tbl_lazy})
 }
 
 This implementation is inspired by spark's \href{https://www.databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html}{window API}.
 
-Implementation Details:
+\strong{Implementation Details}:
+
+For dataframe input:
 \itemize{
 \item Iteration per row over the window is implemented using the versatile
 \href{https://cran.r-project.org/package=slider}{\code{slider}}.
@@ -74,24 +79,30 @@ is implemented using \href{https://cran.r-project.org/package=furrr}{furrr}
 package.
 \item function subsumes regular usecases of \code{\link[dplyr]{mutate}}
 }
+
+For \code{tbl_lazy} input:
+\itemize{
+\item Uses \code{dbplyr::window_order} and \code{dbplyr::window_frame} to translate to
+\code{partition_by} and window frame specification.
+}
 }
 \examples{
 library("magrittr")
-# example 1
+# example 1 (simple case with dataframe)
 # Using iris dataset,
 # compute cumulative mean of column `Sepal.Length`
 # ordered by `Petal.Width` and `Sepal.Width` columns
 # grouped by `Petal.Length` column
 
 iris \%>\%
-  mutate_(sl_mean = mean(Sepal.Length),
-          .order_by = c("Petal.Width", "Sepal.Width"),
-          .by = "Petal.Length",
-          .frame = c(Inf, 0),
-          ) \%>\%
+  tidier::mutate_(sl_mean = mean(Sepal.Length),
+                  .order_by = c("Petal.Width", "Sepal.Width"),
+                  .by = "Petal.Length",
+                  .frame = c(Inf, 0),
+                  ) \%>\%
   dplyr::slice_min(n = 3, Petal.Width, by = Species)
 
-# example 2
+# example 2 (detailed case with dataframe)
 # Using a sample airquality dataset,
 # compute mean temp over last seven days in the same month for every row
 
@@ -103,14 +114,30 @@ airquality \%>\%
   dplyr::slice_sample(prop = 0.8) \%>\%
   dplyr::arrange(date_col) \%>\%
   # compute mean temperature over last seven days in the same month
-  tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-                 .order_by = "Day",
-                 .by = "Month",
-                 .frame = c(lubridate::days(7), # 7 days before current row
+  tidier::mutate_(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
+                  .order_by = "Day",
+                  .by = "Month",
+                  .frame = c(lubridate::days(7), # 7 days before current row
                             lubridate::days(-1) # do not include current row
                             ),
-                 .index = "date_col"
-                 )
+                  .index = "date_col"
+                  )
+# example 3
+airquality \%>\%
+   # create date column as character
+   dplyr::mutate(date_col =
+                   as.character(lubridate::make_date(1973, Month, Day))
+                 ) \%>\%
+   tibble::as_tibble() \%>\%
+   # as `tbl_lazy`
+   dbplyr::memdb_frame() \%>\%
+   mutate_(avg_temp = mean(Temp),
+           .by = "Month",
+           .order_by = "date_col",
+           .frame = c(3, 3)
+           ) \%>\%
+   dplyr::collect() \%>\%
+   dplyr::select(Ozone, Solar.R, Wind, Temp, Month, Day, date_col, avg_temp)
 }
 \seealso{
 mutate

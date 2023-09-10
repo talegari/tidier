@@ -24,7 +24,7 @@ devtools::load_all()
 
 <!-- badges: end -->
 
-`tidier` package provides '[Apache Spark](https://spark.apache.org/)' style window aggregation for R dataframes via '[mutate](https://dplyr.tidyverse.org/reference/mutate.html)' in '[dplyr](https://dplyr.tidyverse.org/index.html)' flavour.
+`tidier` package provides '[Apache Spark](https://spark.apache.org/)' style window aggregation for R dataframes and remote `dbplyr` tbls via '[mutate](https://dplyr.tidyverse.org/reference/mutate.html)' in '[dplyr](https://dplyr.tidyverse.org/index.html)' flavour.
 
 ## Example
 
@@ -54,9 +54,9 @@ airquality |>
     -   `.by` (group by),
     -   `.order_by` (order by),
     -   `.frame` (endpoints of window frame),
-    -   `.index` (identify index column like date column),
-    -   `.complete` (whether to compute over incomplete window).
--   `mutate` automatically uses a future backend (via [`furrr`](https://furrr.futureverse.org/)).
+    -   `.index` (identify index column like date column, in df version only),
+    -   `.complete` (whether to compute over incomplete window, in df version only).
+-   `mutate` automatically uses a future backend (via [`furrr`](https://furrr.futureverse.org/), in df version only).
 
 ## Motivation
 
@@ -64,7 +64,7 @@ This implementation is inspired by Apache Spark's [`windowSpec`](https://spark.a
 
 ## Ecosystem
 
-1.  [`dbplyr`](https://dbplyr.tidyverse.org/) implements this via [`dbplyr::win_over`](https://dbplyr.tidyverse.org/reference/win_over.html?q=win_over#null) enabling [`sparklyr`](https://spark.rstudio.com/) users to write window computations. Also see, [`dbplyr::window_order`/`dbplyr::window_frame`](https://dbplyr.tidyverse.org/reference/window_order.html?q=window_fr#ref-usage).
+1.  [`dbplyr`](https://dbplyr.tidyverse.org/) implements this via [`dbplyr::win_over`](https://dbplyr.tidyverse.org/reference/win_over.html?q=win_over#null) enabling [`sparklyr`](https://spark.rstudio.com/) users to write window computations. Also see, [`dbplyr::window_order`/`dbplyr::window_frame`](https://dbplyr.tidyverse.org/reference/window_order.html?q=window_fr#ref-usage). `tidier`'s `mutate` wraps this functionality via uniform syntax across dataframes and remote tbls.
 
 2.  [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html) python package implements `mutate` style window computation API for pyspark.
 
@@ -75,7 +75,7 @@ This implementation is inspired by Apache Spark's [`windowSpec`](https://spark.a
 
 ## Acknowledgements
 
-`tidier` package is deeply indebted to two amazing packages and people behind it.
+`tidier` package is deeply indebted to three amazing packages and people behind it.
 
 1.  [`dplyr`](https://cran.r-project.org/package=dplyr):
 
@@ -94,4 +94,14 @@ Grammar of Data Manipulation_. R package version 1.1.0,
 ```         
 Vaughan D (2021). _slider: Sliding Window Functions_. R package
 version 0.2.2, <https://CRAN.R-project.org/package=slider>.
+```
+
+3. [`dbplyr`](https://cran.r-project.org/package=dbplyr):
+
+<!-- -->
+
+```
+Wickham H, Girlich M, Ruiz E (2023). _dbplyr: A 'dplyr' Back End
+  for Databases_. R package version 2.3.2,
+  <https://CRAN.R-project.org/package=dbplyr>.
 ```

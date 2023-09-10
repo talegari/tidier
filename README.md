@@ -8,12 +8,12 @@
 [![CRAN
 status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier)
 [![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml)
-[![](https://img.shields.io/badge/devel%20version-0.1.0-blue.svg)](https://github.com/talegari/tidier)
+[![](https://img.shields.io/badge/devel%20version-0.2.0-blue.svg)](https://github.com/talegari/tidier)
 
 <!-- badges: end -->
 
 `tidier` package provides ‘[Apache Spark](https://spark.apache.org/)’
-style window aggregation for R dataframes via
+style window aggregation for R dataframes and remote `dbplyr` tbls via
 ‘[mutate](https://dplyr.tidyverse.org/reference/mutate.html)’ in
 ‘[dplyr](https://dplyr.tidyverse.org/index.html)’ flavour.
 
@@ -41,16 +41,16 @@ airquality |>
 #> # A tibble: 122 × 8
 #>    Month Ozone Solar.R  Wind  Temp   Day date_col   avg_temp_over_last_week
 #>    <int> <int>   <int> <dbl> <int> <int> <date>                       <dbl>
-#>  1     6    NA     332  13.8    80    14 1973-06-14                    87.2
-#>  2     5    28      NA  14.9    66     6 1973-05-06                    66  
-#>  3     5     6      78  18.4    57    18 1973-05-18                    65.2
-#>  4     8    45     212   9.7    79    24 1973-08-24                    76.5
-#>  5     5    36     118   8      72     2 1973-05-02                   NaN  
-#>  6     9    24     238  10.3    68    19 1973-09-19                    73  
-#>  7     9    16     201   8      82    20 1973-09-20                    71.7
-#>  8     6    NA     186   9.2    84     4 1973-06-04                    72.5
-#>  9     8    78      NA   6.9    86     4 1973-08-04                    81.3
-#> 10     8   168     238   3.4    81    25 1973-08-25                    76.5
+#>  1     6    NA     286   8.6    78     1 1973-06-01                   NaN  
+#>  2     6    NA     242  16.1    67     3 1973-06-03                    78  
+#>  3     6    NA     186   9.2    84     4 1973-06-04                    72.5
+#>  4     6    NA     264  14.3    79     6 1973-06-06                    76.3
+#>  5     6    29     127   9.7    82     7 1973-06-07                    77  
+#>  6     6    NA     273   6.9    87     8 1973-06-08                    78  
+#>  7     6    NA     259  10.9    93    11 1973-06-11                    83  
+#>  8     6    NA     250   9.2    92    12 1973-06-12                    85.2
+#>  9     6    23     148   8      82    13 1973-06-13                    86.6
+#> 10     6    NA     332  13.8    80    14 1973-06-14                    87.2
 #> # ℹ 112 more rows
 ```
 
@@ -60,10 +60,12 @@ airquality |>
   - `.by` (group by),
   - `.order_by` (order by),
   - `.frame` (endpoints of window frame),
-  - `.index` (identify index column like date column),
-  - `.complete` (whether to compute over incomplete window).
+  - `.index` (identify index column like date column, in df version
+    only),
+  - `.complete` (whether to compute over incomplete window, in df
+    version only).
 - `mutate` automatically uses a future backend (via
-  [`furrr`](https://furrr.futureverse.org/)).
+  [`furrr`](https://furrr.futureverse.org/), in df version only).
 
 ## Motivation
 
@@ -81,6 +83,8 @@ and
     enabling [`sparklyr`](https://spark.rstudio.com/) users to write
     window computations. Also see,
     [`dbplyr::window_order`/`dbplyr::window_frame`](https://dbplyr.tidyverse.org/reference/window_order.html?q=window_fr#ref-usage).
+    `tidier`’s `mutate` wraps this functionality via uniform syntax
+    across dataframes and remote tbls.
 
 2.  [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html)
     python package implements `mutate` style window computation API for
@@ -93,7 +97,7 @@ and
 
 ## Acknowledgements
 
-`tidier` package is deeply indebted to two amazing packages and people
+`tidier` package is deeply indebted to three amazing packages and people
 behind it.
 
 1.  [`dplyr`](https://cran.r-project.org/package=dplyr):
@@ -110,3 +114,11 @@ behind it.
 
     Vaughan D (2021). _slider: Sliding Window Functions_. R package
     version 0.2.2, <https://CRAN.R-project.org/package=slider>.
+
+3.  [`dbplyr`](https://cran.r-project.org/package=dbplyr):
+
+<!-- -->
+
+    Wickham H, Girlich M, Ruiz E (2023). _dbplyr: A 'dplyr' Back End
+      for Databases_. R package version 2.3.2,
+      <https://CRAN.R-project.org/package=dbplyr>.
