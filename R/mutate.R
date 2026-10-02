@@ -167,7 +167,9 @@ mutate = function(x,
                   ){
 
   # ==== prepare before core mutate ============================================
-  # TODO: summarise
+  # Note: Stage input dataframe, validate arguments, capture expressions,
+  # parse grouping specs (.by), and pre-sort rows based on .order_by
+  # while recording original row numbers in rn__.
 
   checkmate::assert_class(x, "data.frame")
   if (inherits(x, "grouped_df")){
@@ -364,7 +366,9 @@ mutate = function(x,
   if (is.null(.complete)) .complete = FALSE
 
   # ==== core mutate operation =================================================
-  # TODO: summarise
+  # Note: Execute standard mutate, grouped mutate, or sliding window frame
+  # computations (rows_between or range_between via slider) with unnesting,
+  # and restore original row order.
 
   # for cran checks
   slide_output__ = NULL

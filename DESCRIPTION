@@ -1,5 +1,5 @@
 Package: tidier
-Title: Enhanced 'mutate' with 'Apache Spark' style window operations
+Title: Enhanced 'mutate' with 'Apache Spark' Style Window Operations
 Version: 0.3.0
 Authors@R: 
     person("Srikanth",
@@ -29,3 +29,5 @@ License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.1.0)

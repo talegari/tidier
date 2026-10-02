@@ -66,22 +66,8 @@ airquality |>
 
 ## Motivation
 
-This implementation is inspired by Apache Spark’s
-[`windowSpec`](https://spark.apache.org/docs/3.2.1/api/python/reference/api/pyspark.sql.Column.over.html?highlight=windowspec)
-class with
-[`rangeBetween`](https://spark.apache.org/docs/3.2.1/api/python/reference/api/pyspark.sql.WindowSpec.rangeBetween.html)
-and
-[`rowsBetween`](https://spark.apache.org/docs/3.2.1/api/python/reference/api/pyspark.sql.WindowSpec.rowsBetween.html).
-
-## Ecosystem
-
-1.  [`dbplyr`](https://dbplyr.tidyverse.org/) implements window
-    operations natively in newer versions (\>= 2.6.0). `tidier` focuses
-    on supercharged in-memory dataframe window operations.
-
-2.  [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html)
-    python package implements `mutate` style window computation API for
-    pyspark.
+This implementation is inspired by Apache Spark’s `windowspec`,
+`rows between` and `range between`.
 
 ## Installation
 

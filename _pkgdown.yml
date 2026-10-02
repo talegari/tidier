@@ -1,4 +1,4 @@
-url: ~
+url: https://github.com/talegari/tidier
 template:
   bootstrap: 5
-
+  bootswatch: flatly
