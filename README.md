@@ -8,14 +8,13 @@
 [![CRAN
 status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier)
 [![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml)
-[![](https://img.shields.io/badge/devel%20version-0.2.0-blue.svg)](https://github.com/talegari/tidier)
 
 <!-- badges: end -->
 
-`tidier` package provides ‘[Apache Spark](https://spark.apache.org/)’
-style window aggregation for R dataframes and remote `dbplyr` tbls via
-‘[mutate](https://dplyr.tidyverse.org/reference/mutate.html)’ in
-‘[dplyr](https://dplyr.tidyverse.org/index.html)’ flavour.
+`tidier` package provides [Apache Spark](https://spark.apache.org/)
+style window aggregation for R dataframes via
+[mutate](https://dplyr.tidyverse.org/reference/mutate.html) in
+[dplyr](https://dplyr.tidyverse.org/index.html) flavor.
 
 ## Example
 
@@ -31,26 +30,25 @@ airquality |>
   dplyr::slice_sample(prop = 0.8) |> 
   # compute mean temperature over last seven days in the same month
   tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-                 .order_by = Day,
+                 .order_by = date_col,
                  .by       = Month,
-                 .frame    = c(lubridate::days(7), # 7 days before current row
-                               lubridate::days(-1) # do not include current row
-                               ),
-                 .index    = date_col
+                 .frame    = range_between(lubridate::days(7), # 7 days before current row
+                                           lubridate::days(-1) # do not include current row
+                                           )
                  )
 #> # A tibble: 122 × 8
-#>    Month Ozone Solar.R  Wind  Temp   Day date_col   avg_temp_over_last_week
-#>    <int> <int>   <int> <dbl> <int> <int> <date>                       <dbl>
-#>  1     6    NA     286   8.6    78     1 1973-06-01                   NaN  
-#>  2     6    NA     242  16.1    67     3 1973-06-03                    78  
-#>  3     6    NA     186   9.2    84     4 1973-06-04                    72.5
-#>  4     6    NA     264  14.3    79     6 1973-06-06                    76.3
-#>  5     6    29     127   9.7    82     7 1973-06-07                    77  
-#>  6     6    NA     273   6.9    87     8 1973-06-08                    78  
-#>  7     6    NA     259  10.9    93    11 1973-06-11                    83  
-#>  8     6    NA     250   9.2    92    12 1973-06-12                    85.2
-#>  9     6    23     148   8      82    13 1973-06-13                    86.6
-#> 10     6    NA     332  13.8    80    14 1973-06-14                    87.2
+#>    Ozone Solar.R  Wind  Temp Month   Day date_col   avg_temp_over_last_week
+#>    <int>   <int> <dbl> <int> <int> <int> <date>                       <dbl>
+#>  1    10     264  14.3    73     7    12 1973-07-12                    85.5
+#>  2    NA     127   8      78     6    26 1973-06-26                    75.4
+#>  3    16      77   7.4    82     8     3 1973-08-03                    81  
+#>  4    14     191  14.3    75     9    28 1973-09-28                    71.8
+#>  5    NA     138   8      83     6    30 1973-06-30                    76.6
+#>  6    NA      98  11.5    80     6    28 1973-06-28                    75.8
+#>  7   122     255   4      89     8     7 1973-08-07                    83.7
+#>  8    47      95   7.4    87     9     5 1973-09-05                    92.5
+#>  9    23     220  10.3    78     9     8 1973-09-08                    90.7
+#> 10    NA     286   8.6    78     6     1 1973-06-01                   NaN  
 #> # ℹ 112 more rows
 ```
 
@@ -59,13 +57,12 @@ airquality |>
 - `mutate` supports
   - `.by` (group by),
   - `.order_by` (order by),
-  - `.frame` (endpoints of window frame),
-  - `.index` (identify index column like date column, in df version
-    only),
-  - `.complete` (whether to compute over incomplete window, in df
-    version only).
-- `mutate` automatically uses a future backend (via
-  [`furrr`](https://furrr.futureverse.org/), in df version only).
+  - `.frame` (window frame defined by `rows_between` or
+    `range_between`),
+  - `.complete` (whether to compute over incomplete window).
+- `tidier::mutate` is single-threaded. For heavy parallelization across
+  many groups, users can combine `tidyr::nest()` with parallel map
+  (e.g. `furrr::future_map()`) and `tidyr::unnest()`.
 
 ## Motivation
 
@@ -78,13 +75,9 @@ and
 
 ## Ecosystem
 
-1.  [`dbplyr`](https://dbplyr.tidyverse.org/) implements this via
-    [`dbplyr::win_over`](https://dbplyr.tidyverse.org/reference/win_over.html?q=win_over#null)
-    enabling [`sparklyr`](https://spark.rstudio.com/) users to write
-    window computations. Also see,
-    [`dbplyr::window_order`/`dbplyr::window_frame`](https://dbplyr.tidyverse.org/reference/window_order.html?q=window_fr#ref-usage).
-    `tidier`’s `mutate` wraps this functionality via uniform syntax
-    across dataframes and remote tbls.
+1.  [`dbplyr`](https://dbplyr.tidyverse.org/) implements window
+    operations natively in newer versions (\>= 2.6.0). `tidier` focuses
+    on supercharged in-memory dataframe window operations.
 
 2.  [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html)
     python package implements `mutate` style window computation API for
@@ -97,7 +90,7 @@ and
 
 ## Acknowledgements
 
-`tidier` package is deeply indebted to three amazing packages and people
+`tidier` package is deeply indebted to the amazing packages and people
 behind it.
 
 1.  [`dplyr`](https://cran.r-project.org/package=dplyr):
@@ -114,11 +107,3 @@ behind it.
 
     Vaughan D (2021). _slider: Sliding Window Functions_. R package
     version 0.2.2, <https://CRAN.R-project.org/package=slider>.
-
-3.  [`dbplyr`](https://cran.r-project.org/package=dbplyr):
-
-<!-- -->
-
-    Wickham H, Girlich M, Ruiz E (2023). _dbplyr: A 'dplyr' Back End
-      for Databases_. R package version 2.3.2,
-      <https://CRAN.R-project.org/package=dbplyr>.

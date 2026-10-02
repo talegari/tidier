@@ -17,3 +17,4 @@ dataframe
 \description{
 Remove non-list columns when same are present in a list column
 }
+\keyword{internal}
