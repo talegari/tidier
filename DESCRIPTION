@@ -22,7 +22,8 @@ Suggests:
     tibble,
     furrr,
     DBI,
-    future
+    future,
+    dbplyr,
 URL: https://github.com/talegari/tidier
 License: GPL (>= 3)
 Encoding: UTF-8
