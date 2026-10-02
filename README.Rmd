@@ -12,7 +12,6 @@ knitr::opts_chunk$set(
   out.width = "100%"
 )
 
-library("purrr") # prevent `purrr` load message by `furrr`
 devtools::load_all()
 ```
 
@@ -20,11 +19,11 @@ devtools::load_all()
 
 <!-- badges: start -->
 
-[![CRAN status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier) [![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml) `r badger::badge_devel(color = "blue")`
+[![CRAN status](https://www.r-pkg.org/badges/version/tidier)](https://CRAN.R-project.org/package=tidier) [![R-CMD-check](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/talegari/tidier/actions/workflows/R-CMD-check.yaml)
 
 <!-- badges: end -->
 
-`tidier` package provides '[Apache Spark](https://spark.apache.org/)' style window aggregation for R dataframes and remote `dbplyr` tbls via '[mutate](https://dplyr.tidyverse.org/reference/mutate.html)' in '[dplyr](https://dplyr.tidyverse.org/index.html)' flavour.
+`tidier` package provides [Apache Spark](https://spark.apache.org/) style window aggregation for R dataframes via [mutate](https://dplyr.tidyverse.org/reference/mutate.html) in [dplyr](https://dplyr.tidyverse.org/index.html) flavor.
 
 ## Example
 
@@ -39,24 +38,22 @@ airquality |>
   dplyr::slice_sample(prop = 0.8) |> 
   # compute mean temperature over last seven days in the same month
   tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-                 .order_by = Day,
+                 .order_by = date_col,
                  .by       = Month,
-                 .frame    = c(lubridate::days(7), # 7 days before current row
-                               lubridate::days(-1) # do not include current row
-                               ),
-                 .index    = date_col
+                 .frame    = range_between(lubridate::days(7), # 7 days before current row
+                                           lubridate::days(-1) # do not include current row
+                                           )
                  )
 ```
 
 ## Features
 
--   `mutate` supports
-    -   `.by` (group by),
-    -   `.order_by` (order by),
-    -   `.frame` (endpoints of window frame),
-    -   `.index` (identify index column like date column, in df version only),
-    -   `.complete` (whether to compute over incomplete window, in df version only).
--   `mutate` automatically uses a future backend (via [`furrr`](https://furrr.futureverse.org/), in df version only).
+- `mutate` supports
+  - `.by` (group by),
+  - `.order_by` (order by),
+  - `.frame` (window frame defined by `rows_between` or `range_between`),
+  - `.complete` (whether to compute over incomplete window).
+- `tidier::mutate` is single-threaded. For heavy parallelization across many groups, users can combine `tidyr::nest()` with parallel map (e.g. `furrr::future_map()`) and `tidyr::unnest()`.
 
 ## Motivation
 
@@ -64,22 +61,20 @@ This implementation is inspired by Apache Spark's [`windowSpec`](https://spark.a
 
 ## Ecosystem
 
-1.  [`dbplyr`](https://dbplyr.tidyverse.org/) implements this via [`dbplyr::win_over`](https://dbplyr.tidyverse.org/reference/win_over.html?q=win_over#null) enabling [`sparklyr`](https://spark.rstudio.com/) users to write window computations. Also see, [`dbplyr::window_order`/`dbplyr::window_frame`](https://dbplyr.tidyverse.org/reference/window_order.html?q=window_fr#ref-usage). `tidier`'s `mutate` wraps this functionality via uniform syntax across dataframes and remote tbls.
+1.  [`dbplyr`](https://dbplyr.tidyverse.org/) implements window operations natively in newer versions (\>= 2.6.0). `tidier` focuses on supercharged in-memory dataframe window operations.
 
 2.  [`tidypyspark`](https://talegari.github.io/tidypyspark/_build/html/index.html) python package implements `mutate` style window computation API for pyspark.
 
 ## Installation
 
--   dev: `remotes::install_github("talegari/tidier")`
--   cran: `install.packages("tidier")`
+- dev: `remotes::install_github("talegari/tidier")`
+- cran: `install.packages("tidier")`
 
 ## Acknowledgements
 
-`tidier` package is deeply indebted to three amazing packages and people behind it.
+`tidier` package is deeply indebted to the amazing packages and people behind it.
 
 1.  [`dplyr`](https://cran.r-project.org/package=dplyr):
-
-<!-- -->
 
 ```         
 Wickham H, François R, Henry L, Müller K, Vaughan D (2023). _dplyr: A
@@ -89,19 +84,7 @@ Grammar of Data Manipulation_. R package version 1.1.0,
 
 2.  [`slider`](https://cran.r-project.org/package=slider):
 
-<!-- -->
-
 ```         
 Vaughan D (2021). _slider: Sliding Window Functions_. R package
 version 0.2.2, <https://CRAN.R-project.org/package=slider>.
-```
-
-3. [`dbplyr`](https://cran.r-project.org/package=dbplyr):
-
-<!-- -->
-
-```
-Wickham H, Girlich M, Ruiz E (2023). _dbplyr: A 'dplyr' Back End
-  for Databases_. R package version 2.3.2,
-  <https://CRAN.R-project.org/package=dbplyr>.
 ```

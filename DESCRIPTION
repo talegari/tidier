@@ -1,12 +1,12 @@
 Package: tidier
-Title: Enhanced 'mutate'
-Version: 0.2.0
+Title: Enhanced 'mutate' with 'Apache Spark' style window operations
+Version: 0.3.0
 Authors@R: 
     person("Srikanth",
            "Komala Sheshachala",,
            "sri.teach@gmail.com",
            role = c("aut", "cre"))
-Description: Provides 'Apache Spark' style window aggregation for R dataframes and remote 'dbplyr' tables via 'mutate' in 'dplyr' flavour.
+Description: Window operations for R dataframes with 'by', 'order_by' and 'frame' defined by 'rows_between' or 'range_between', inspired by 'Apache Spark' via 'mutate' in 'dplyr' flavor.
 Imports:
     dplyr (>= 1.1.0),
     tidyr (>= 1.3.0),
@@ -14,16 +14,18 @@ Imports:
     rlang (>= 1.0.6),
     slider (>= 0.2.2),
     magrittr (>= 1.5),
-    furrr (>= 0.3.0),
-    dbplyr (>= 2.3.1),
 Suggests:
     lubridate,
     stringr,
     testthat,
-    RSQLite,
+    duckdb,
     tibble,
+    furrr,
+    DBI,
+    future,
+    dbplyr,
 URL: https://github.com/talegari/tidier
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.3.2

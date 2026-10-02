@@ -1,323 +1,136 @@
-
 test_that("basic mutate", {
   res = iris %>%
     mutate(sl_pl_1 = Sepal.Length + 1)
 
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  res = iris %>%
-    mutate_(sl_pl_1 = Sepal.Length + 1)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
+  expect_true(inherits(res, "data.frame"))
+  expect_equal(res$sl_pl_1, iris$Sepal.Length + 1)
 })
 
 test_that("order_by without by", {
-  # simple order_by
   res = iris %>%
-    mutate(sl_pl_1 = cumsum(Sepal.Length),
-           .order_by = Petal.Width
-           ) %>%
-    dplyr::arrange(Petal.Width)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  # involved order_by
-  res = iris %>%
-    mutate(sl_pl_1 = cumsum(Sepal.Length),
-            .order_by = c(desc(Petal.Width), Sepal.Length)
-            ) %>%
-    dplyr::arrange(desc(Petal.Width), Sepal.Length)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  res = iris %>%
-    mutate_(sl_pl_1 = cumsum(Sepal.Length),
-            .order_by = "Petal.Width"
-            ) %>%
-    dplyr::arrange(Petal.Width)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  res = iris %>%
-    mutate_(sl_pl_1 = cumsum(Sepal.Length),
-            .order_by = c("Petal.Width", "Sepal.Length"),
-            .desc = c(TRUE, FALSE)
-            ) %>%
-    dplyr::arrange(desc(Petal.Width), Sepal.Length)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-})
-
-test_that("order_by with by", {
-
-  res = iris %>%
-    dplyr::mutate(rn = dplyr::row_number()) %>%
     mutate(sl_cumsum = cumsum(Sepal.Length),
-           .order_by = c(Petal.Width, rn),
-           .by = c(Species)
-           ) %>%
-    dplyr::select(-rn) %>%
-    dplyr::slice_min(n = 3, Petal.Width, by = Species)
+           .order_by = Petal.Width
+           )
 
-  testthat::expect(inherits(res, "data.frame"), "not a df")
+  expect_true(inherits(res, "data.frame"))
+})
+
+test_that("multiple order by columns when frame is not specified", {
+  res = iris %>%
+    mutate(sl_cumsum = cumsum(Sepal.Length),
+           .order_by = c(Petal.Width, Sepal.Length),
+           .by = Species
+           )
+
+  expect_true(inherits(res, "data.frame"))
+})
+
+test_that("order_by should be a single column when range_between frame is specified", {
+  expect_error(
+    mtcars %>%
+      mutate(s = sum(mpg),
+             .by = cyl,
+             .order_by = c(gear, qsec),
+             .frame = range_between(5, 4)
+             )
+  )
+})
+
+test_that("parallel execution across many groups using tidyr::nest and furrr", {
+
+  future::plan(future::sequential) # use sequential in tests for reliability
 
   res = iris %>%
+    tidyr::nest(.by = Species) %>%
+    dplyr::mutate(
+      data = furrr::future_map(data, ~ .x %>%
+                          mutate(
+                            sl_mean = mean(Sepal.Length),
+                            .order_by = Petal.Width,
+                            .frame = rows_between(2, 2)
+                          )
+                       )
+    ) %>%
+    tidyr::unnest(data)
+
+  expect_true(inherits(res, "data.frame"))
+  expect_true("sl_mean" %in% colnames(res))
+})
+
+test_that("compare mutate output with duckdb backend", {
+
+  con = DBI::dbConnect(duckdb::duckdb(), ":memory:")
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+
+  dplyr::copy_to(con,
+                 mtcars %>% dplyr::mutate(rn = dplyr::row_number()),
+                 name = "mtcars_tbl",
+                 overwrite = TRUE
+                 )
+
+  # Test 1: rows_between (1 preceding and 1 following)
+  query1 = "
+    select *,
+           sum(mpg) over (partition by cyl
+                          order by gear
+                          rows between 1 preceding and 1 following) as s
+    from mtcars_tbl
+    order by rn
+  "
+  res_db1 = DBI::dbGetQuery(con, query1) %>% tibble::as_tibble()
+
+  res_tidier1 = mtcars %>%
+    mutate(s = sum(mpg),
+           .by = cyl,
+           .order_by = gear,
+           .frame = rows_between(1, 1)
+           ) %>%
     dplyr::mutate(rn = dplyr::row_number()) %>%
-    mutate_(sl_cumsum = cumsum(Sepal.Length),
-            .order_by = c("Petal.Width", "rn"),
-            .by = c("Species")
-            ) %>%
-    dplyr::select(-rn) %>%
-    dplyr::slice_min(n = 3, Petal.Width, by = Species)
+    dplyr::select(names(res_db1))
 
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-})
+  expect_equal(res_tidier1$s, res_db1$s)
 
-test_that("order_by, with by, with frame", {
+  # Test 2: rows_between (unbounded preceding and 1 following)
+  query2 = "
+    select *,
+           sum(mpg) over (partition by cyl
+                          order by gear
+                          rows between unbounded preceding and 1 following) as s
+    from mtcars_tbl
+    order by rn
+  "
+  res_db2 = DBI::dbGetQuery(con, query2) %>% tibble::as_tibble()
 
-  res = iris %>%
-    mutate(sl_mean = mean(Sepal.Length),
-            .frame = c(Inf, 0),
-            .order_by = Petal.Width,
-            .by = c(Petal.Length, Sepal.Width)
-            ) %>%
-    dplyr::slice_min(n = 3, Petal.Width, by = Species)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  res = iris %>%
-    mutate_(sl_mean = mean(Sepal.Length),
-            .frame = c(Inf, 0),
-            .order_by = "Petal.Width",
-            .by = c("Species", "Petal.Length")
-            ) %>%
-    dplyr::slice_min(n = 3, Petal.Width, by = Species)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-})
-
-test_that("order_by, with by, with frame, with index", {
-
-  res = airquality %>%
-  # create date column
-  dplyr::mutate(date_col = as.Date(paste("1973",
-                                         stringr::str_pad(Month,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         stringr::str_pad(Day,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         sep = "-"
-                                         )
-                                  )
-                ) %>%
-  # create gaps by removing some days
-  dplyr::slice_sample(prop = 0.8) %>%
-  # compute mean temperature over last seven days in the same month
-  mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-         .order_by = Day,
-         .by = Month,
-         .frame = c(lubridate::days(7), # 7 days before current row
-                    lubridate::days(-1) # do not include current row
-                    ),
-         .index = date_col
-         )
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  res = airquality %>%
-  # create date column
-  dplyr::mutate(date_col = as.Date(paste("1973",
-                                         stringr::str_pad(Month,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         stringr::str_pad(Day,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         sep = "-"
-                                         )
-                                  )
-                ) %>%
-  # create gaps by removing some days
-  dplyr::slice_sample(prop = 0.8) %>%
-  # compute mean temperature over last seven days in the same month
-  mutate_(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-         .order_by = "Day",
-         .by = "Month",
-         .frame = c(lubridate::days(7), # 7 days before current row
-                    lubridate::days(-1) # do not include current row
-                    ),
-         .index = "date_col"
-         )
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-})
-
-test_that("order_by, with by, with frame, same column name", {
-
-  res = iris %>%
-    mutate(Sepal.Length = mean(Sepal.Length),
-            .frame = c(Inf, 0),
-            .order_by = Petal.Width,
-            .by = c(Petal.Length, Sepal.Width)
-            ) %>%
-    dplyr::slice_min(n = 3, Petal.Width, by = Species)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  res = iris %>%
-    mutate_(Sepal.Length = mean(Sepal.Length),
-            .frame = c(Inf, 0),
-            .order_by = "Petal.Width",
-            .by = c("Species", "Petal.Length")
-            ) %>%
-    dplyr::slice_min(n = 3, Petal.Width, by = Species)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-})
-
-test_that("order_by, with by, with frame, same column name", {
-
-  res = iris %>%
-    mutate(Sepal.Length = mean(Sepal.Length),
-            .frame = c(Inf, 0),
-            .order_by = Petal.Width,
-            .by = c(Petal.Length, Sepal.Width)
-            ) %>%
-    dplyr::slice_min(n = 3, Petal.Width, by = Species)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  res = iris %>%
-    mutate_(Sepal.Length = mean(Sepal.Length),
-            .frame = c(Inf, 0),
-            .order_by = "Petal.Width",
-            .by = c("Species", "Petal.Length")
-            ) %>%
-    dplyr::slice_min(n = 3, Petal.Width, by = Species)
-
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-})
-
-test_that("order_by, with by, with frame, with index, with same column", {
-
-  res = airquality %>%
-  # create date column
-  dplyr::mutate(date_col = as.Date(paste("1973",
-                                         stringr::str_pad(Month,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         stringr::str_pad(Day,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         sep = "-"
-                                         )
-                                  )
-                ) %>%
-  # create gaps by removing some days
-  dplyr::slice_sample(prop = 0.8) %>%
-  # compute mean temperature over last seven days in the same month
-  mutate(Temp = mean(Temp, na.rm = TRUE),
-         .order_by = Day,
-         .by = Month,
-         .frame = c(lubridate::days(7), # 7 days before current row
-                    lubridate::days(-1) # do not include current row
-                    ),
-         .index = date_col
-         )
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-
-  res = airquality %>%
-  # create date column
-  dplyr::mutate(date_col = as.Date(paste("1973",
-                                         stringr::str_pad(Month,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         stringr::str_pad(Day,
-                                                          width = 2,
-                                                          side = "left",
-                                                          pad = "0"
-                                                          ),
-                                         sep = "-"
-                                         )
-                                  )
-                ) %>%
-  # create gaps by removing some days
-  dplyr::slice_sample(prop = 0.8) %>%
-  # compute mean temperature over last seven days in the same month
-  mutate_(Temp = mean(Temp, na.rm = TRUE),
-         .order_by = "Day",
-         .by = "Month",
-         .frame = c(lubridate::days(7), # 7 days before current row
-                    lubridate::days(-1) # do not include current row
-                    ),
-         .index = "date_col"
-         )
-  testthat::expect(inherits(res, "data.frame"), "not a df")
-})
-
-test_that("compare mutate df vs sb", {
-
-  res_df =
-    airquality %>%
-    # create date column as character
-    dplyr::mutate(date_col =
-                    as.character(lubridate::make_date(1973, Month, Day))
-                  ) %>%
-    tibble::as_tibble() %>%
-    mutate(avg_temp = mean(Temp),
-           .by = Month,
-           .order_by = c(date_col),
-           .frame = c(3, 3)
+  res_tidier2 = mtcars %>%
+    mutate(s = sum(mpg),
+           .by = cyl,
+           .order_by = gear,
+           .frame = rows_between(Inf, 1)
            ) %>%
-    dplyr::select(Ozone, Solar.R, Wind, Temp, Month, Day, date_col, avg_temp)
+    dplyr::mutate(rn = dplyr::row_number()) %>%
+    dplyr::select(names(res_db2))
 
-  res_db =
-    airquality %>%
-    # create date column as character
-    dplyr::mutate(date_col =
-                    as.character(lubridate::make_date(1973, Month, Day))
-                  ) %>%
-    tibble::as_tibble() %>%
-    # as `tbl_lazy`
-    dbplyr::memdb_frame() %>%
-    mutate(avg_temp = mean(Temp),
-           .by = Month,
-           .order_by = c(date_col),
-           .frame = c(3, 3)
+  expect_equal(res_tidier2$s, res_db2$s)
+
+  # Test 3: range_between (5 preceding and 4 following on numeric qsec)
+  query3 = "
+    select *,
+           sum(mpg) over (partition by cyl
+                          order by qsec
+                          range between 5 preceding and 4 following) as s
+    from mtcars_tbl
+    order by rn
+  "
+  res_db3 = DBI::dbGetQuery(con, query3) %>% tibble::as_tibble()
+
+  res_tidier3 = mtcars %>%
+    mutate(s = sum(mpg),
+           .by = cyl,
+           .order_by = qsec,
+           .frame = range_between(5, 4)
            ) %>%
-    dplyr::collect() %>%
-    dplyr::select(Ozone, Solar.R, Wind, Temp, Month, Day, date_col, avg_temp)
+    dplyr::mutate(rn = dplyr::row_number()) %>%
+    dplyr::select(names(res_db3))
 
-  res_db_ =
-    airquality %>%
-    # create date column as character
-    dplyr::mutate(date_col =
-                    as.character(lubridate::make_date(1973, Month, Day))
-                  ) %>%
-    tibble::as_tibble() %>%
-    # as `tbl_lazy`
-    dbplyr::memdb_frame() %>%
-    mutate_(avg_temp = mean(Temp),
-           .by = "Month",
-           .order_by = "date_col",
-           .frame = c(3, 3)
-           ) %>%
-    dplyr::collect() %>%
-    dplyr::select(Ozone, Solar.R, Wind, Temp, Month, Day, date_col, avg_temp)
-
-  testthat::expect_true(all.equal(res_df, res_db))
-  testthat::expect_true(all.equal(res_df, res_db_))
+  expect_equal(res_tidier3$s, res_db3$s)
 })

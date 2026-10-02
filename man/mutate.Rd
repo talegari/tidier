@@ -2,82 +2,52 @@
 % Please edit documentation in R/mutate.R
 \name{mutate}
 \alias{mutate}
-\title{Drop-in replacement for \code{\link[dplyr]{mutate}}}
+\title{Drop-in replacement for \link[dplyr:mutate]{dplyr::mutate}}
 \usage{
-mutate(x, ..., .by, .order_by, .frame, .index, .complete = FALSE)
+mutate(x, ..., .by, .order_by, .frame, .complete = FALSE)
 }
 \arguments{
-\item{x}{(\code{data.frame} or \code{tbl_lazy})}
+\item{x}{(\code{data.frame}_}
 
-\item{...}{expressions to be passed to \code{\link[dplyr]{mutate}}}
+\item{...}{expressions to be passed to \link[dplyr:mutate]{dplyr::mutate}}
 
 \item{.by}{(expression, optional: Yes) Columns to group by}
 
 \item{.order_by}{(expression, optional: Yes) Columns to order by}
 
-\item{.frame}{(vector, optional: Yes) Vector of length 2 indicating the
-number of rows to consider before and after the current row. When argument
-\code{.index} is provided (typically a column of type date or datetime), before
-and after can be
-\href{https://lubridate.tidyverse.org/reference/interval.html}{interval}
-objects. See examples. When input is \code{tbl_lazy}, only number of rows as
-vector of length 2 is supported.}
+\item{.frame}{(vector, optional: Yes) Object of class \code{frame} created by one
+of these functions: \code{rows_between}, \code{range_between}}
 
-\item{.index}{(expression, optional: Yes, default: NULL) index column. This
-is supported when input is a dataframe only.}
-
-\item{.complete}{(flag, default: FALSE) This will be passed to
-\code{slider::slide} / \code{slider::slide_vec}. Should the function be evaluated on
-complete windows only? If FALSE or NULL, the default, then partial
-computations will be allowed. This is supported when input is a dataframe
-only.}
+\item{.complete}{(flag, default: FALSE) passed to \link[slider:slide]{slider::slide}}
 }
 \value{
-\code{data.frame} or \code{tbl_lazy}
+\code{data.frame}
 }
 \description{
-Provides supercharged version of \code{\link[dplyr]{mutate}}
-with \code{group_by}, \code{order_by} and aggregation over arbitrary window frame
-around a row for dataframes and lazy (remote) \code{tbl}s of class \code{tbl_lazy}.
+Provides supercharged version of \link[dplyr:mutate]{dplyr::mutate}
+with \code{.by} (group by), \code{.order_by} and \code{.frame} aggregation over arbitrary
+window frame
 }
 \details{
 A window function returns a value for every input row of a dataframe
-or \code{lazy_tbl} based on a group of rows (frame) in the neighborhood of the
-input row. This function implements computation over groups (\code{partition_by}
-in SQL) in a predefined order (\code{order_by} in SQL) across a neighborhood of
-rows (frame) defined by a (up, down) where
+based on a group of rows (frame) in the neighborhood of the input row. This
+function implements computation over groups (\code{partition_by} in SQL) in a
+predefined order (\code{order_by} in SQL) across a neighborhood of rows (frame)
+defined by
 \itemize{
-\item up/down are number of rows before and after the corresponding row
-\item up/down are interval objects (ex: \code{c(days(2), days(1))}).
-Interval objects are currently supported for dataframe only. (not
-\code{tbl_lazy})
+\item \code{rows_between}: Number of rows before and after the corresponding row.
+Example: \code{c(2, 1)}
+\item \code{range_between}: Range is numeric or interval objects
+Example: \code{c(days(2), days(1))}
 }
 
 This implementation is inspired by spark's \href{https://www.databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html}{window API}.
-
-\strong{Implementation Details}:
-
-For dataframe input:
-\itemize{
-\item Iteration per row over the window is implemented using the versatile
-\href{https://cran.r-project.org/package=slider}{\code{slider}}.
-\item Application of a window aggregation can be optionally run in parallel
-over multiple groups (see argument \code{.by}) by setting a
-\href{https://cran.r-project.org/package=future}{future} parallel backend. This
-is implemented using \href{https://cran.r-project.org/package=furrr}{furrr}
-package.
-\item function subsumes regular usecases of \code{\link[dplyr]{mutate}}
-}
-
-For \code{tbl_lazy} input:
-\itemize{
-\item Uses \code{dbplyr::window_order} and \code{dbplyr::window_frame} to translate to
-\code{partition_by} and window frame specification.
-}
+The output has the same row order as the input independent of the
+\code{order_by}.
 }
 \examples{
-library("magrittr")
-# example 1 (simple case with dataframe)
+library("magrittr") # for pipe
+# example 1: rows between
 # Using iris dataset,
 # compute cumulative mean of column `Sepal.Length`
 # ordered by `Petal.Width` and `Sepal.Width` columns
@@ -87,11 +57,11 @@ iris \%>\%
   mutate(sl_mean = mean(Sepal.Length),
          .order_by = c(Petal.Width, Sepal.Width),
          .by = Petal.Length,
-         .frame = c(Inf, 0),
+         .frame = rows_between(Inf, 0),
          ) \%>\%
   dplyr::slice_min(n = 3, Petal.Width, by = Species)
 
-# example 2 (detailed case with dataframe)
+# example 2: range between
 # Using a sample airquality dataset,
 # compute mean temp over last seven days in the same month for every row
 
@@ -101,33 +71,55 @@ airquality \%>\%
   dplyr::mutate(date_col = lubridate::make_date(1973, Month, Day)) \%>\%
   # create gaps by removing some days
   dplyr::slice_sample(prop = 0.8) \%>\%
-  dplyr::arrange(date_col) \%>\%
   # compute mean temperature over last seven days in the same month
   tidier::mutate(avg_temp_over_last_week = mean(Temp, na.rm = TRUE),
-                 .order_by = Day,
+                 .order_by = date_col,
                  .by = Month,
-                 .frame = c(lubridate::days(7), # 7 days before current row
+                 .frame = range_between(
+                            lubridate::days(7), # 7 days before current row
                             lubridate::days(-1) # do not include current row
-                            ),
-                 .index = date_col
+                            )
                  )
-# example 3
-airquality \%>\%
-   # create date column as character
-   dplyr::mutate(date_col =
-                   as.character(lubridate::make_date(1973, Month, Day))
-                 ) \%>\%
-   tibble::as_tibble() \%>\%
-   # as `tbl_lazy`
-   dbplyr::memdb_frame() \%>\%
-   mutate(avg_temp = mean(Temp),
-          .by = Month,
-          .order_by = date_col,
-          .frame = c(3, 3)
-          ) \%>\%
-   dplyr::collect() \%>\%
-   dplyr::select(Ozone, Solar.R, Wind, Temp, Month, Day, date_col, avg_temp)
+
+# example 3: custom function / modeling over window frame
+fit_lm_safe = function(df, formula, min_rows = 2) {
+  if (is.null(df) || nrow(df) < min_rows) {
+    return(NULL)
+  }
+
+  tryCatch(
+    lm(formula, data = df),
+    error = function(e) NULL
+  )
+}
+
+mtcars \%>\%
+  mutate(s = list(fit_lm_safe(pick(everything()), mpg ~ .)),
+         .by = c(cyl, vs),
+         .order_by = qsec,
+         .frame = range_between(-1, 3),
+         .complete = FALSE
+         ) \%>\%
+  head(10)
+
+\dontrun{
+# example 4: parallel execution across many groups using tidyr::nest and furrr
+future::plan(future::multisession(workers = 2))
+
+iris \%>\%
+  tidyr::nest(.by = Species) \%>\%
+  dplyr::mutate(
+    data = furrr::future_map(data, ~ .x \%>\%
+                        mutate(
+                          sl_mean = mean(Sepal.Length),
+                          .order_by = Petal.Width,
+                          .frame = rows_between(2, 2)
+                        )
+                     )
+  ) \%>\%
+  tidyr::unnest(data)
+}
 }
 \seealso{
-mutate_
+\code{\link[=rows_between]{rows_between()}}, \code{\link[=range_between]{range_between()}}, \code{\link[=mutate]{mutate()}}
 }
